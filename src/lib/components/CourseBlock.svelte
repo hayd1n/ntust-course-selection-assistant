@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { CourseBlockPos } from "./courseblock";
+  import type { CourseBlockPos } from "$lib/courseblock";
 
   //   export let width = 0;
   //   export let height = 0;

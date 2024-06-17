@@ -119,6 +119,67 @@ export type Course = {
   AbroadPeople: number;
 };
 
+export interface CourseInfo {
+  semester: string;
+  courseNo: string;
+  courseName: string;
+  courseTeacher: string;
+  dimension: string;
+  creditPoint: number;
+  requireOption: string;
+  allYear: string;
+  chooseStudent: number;
+  restrict1: number;
+  restrict2: number;
+  threeStudent: number;
+  allStudent: number;
+  ntuRestrict: number;
+  ntnuRestrict: number;
+  courseTimes: string;
+  practicalTimes: string;
+  classRoomNo?: string;
+  threeNode?: string;
+  node?: string;
+  contents: string;
+  ntuPeople: number;
+  ntnuPeople: number;
+  cbroadPeople: number;
+}
+
+export interface CourseDetails {
+  semester: string;
+  courseNo: string;
+  courseName: string;
+  courseTeacher: string;
+  creditPoint: number;
+  courseTimes: number;
+  practicalTimes: number;
+  requireOption: string;
+  allYear: string;
+  chooseStudent: number;
+  threeStudent: number;
+  allStudent: number;
+  restrict1: number;
+  restrict2: number;
+  ntuRestrict: number;
+  ntnuRestrict?: number;
+  classRoomNo?: string;
+  coreAbility?: string;
+  courseUrl?: string;
+  courseObject?: string;
+  courseContent?: string;
+  courseTextbook?: string;
+  courseRefbook?: string;
+  courseNote?: string;
+  courseGrading?: string;
+  courseRemark?: string;
+  instruction1?: number;
+  instruction2?: number;
+  instruction3?: number;
+  instruction4?: number;
+  instructionOther?: string;
+}
+
 export function parseTimeString(node: string) {
   let times = node.split(",");
 

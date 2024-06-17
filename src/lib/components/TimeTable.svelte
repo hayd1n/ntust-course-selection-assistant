@@ -1,9 +1,9 @@
 <script lang="ts">
   import { Plus } from "lucide-svelte";
-  import { Button } from "./components/ui/button";
   import * as Tooltip from "$lib/components/ui/tooltip";
   import { createEventDispatcher } from "svelte";
-  import { classTimes, weeks } from "./course";
+  import { Button } from "./ui/button";
+  import { classTimes, weeks } from "$lib/course";
 
   export let titlebarStuck: boolean = false;
 
@@ -88,7 +88,7 @@
 
   .table th,
   .table td {
-    @apply border-secondary;
+    @apply;
     @apply p-2;
     @apply overflow-hidden;
   }

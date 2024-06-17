@@ -6,7 +6,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "ntust-course-selection-assistant",
+    "productName": "NTUST Course Selection Assistant",
     "version": "0.0.0"
   },
   "tauri": {
@@ -15,15 +15,11 @@
       "shell": {
         "all": false,
         "open": true
-      },
-      "http": {
-        "all": true,
-        "request": true,
-        "scope": ["https://querycourse.ntust.edu.tw/querycourse/api/*"]
       }
     },
     "windows": [
       {
+        "label": "main",
         "title": "NTUST Course Selection Assistant",
         "width": 900,
         "height": 600,
@@ -36,7 +32,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "tw.hayden.ntust.course-selection-assistant",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
