@@ -1,6 +1,10 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { uiSidemenuWidth } from "$lib/store";
+  import {
+    currentCourse,
+    pageSearchSelectedCourseNo,
+    uiSidemenuWidth,
+  } from "$lib/context";
 </script>
 
 <div
@@ -12,5 +16,7 @@
     <!-- <p class="text-xs">Status Bar</p> -->
     <p class="text-xs">{$page.url}</p>
     <p class="text-xs">{$uiSidemenuWidth}</p>
+    <p class="text-xs">{$pageSearchSelectedCourseNo}</p>
+    <p class="text-xs">{JSON.stringify($currentCourse)}</p>
   </div>
 </div>

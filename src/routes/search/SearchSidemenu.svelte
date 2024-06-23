@@ -4,11 +4,17 @@
   import * as CourseCard from "$lib/components/course-card";
   import { Input } from "$lib/components/ui/input";
   import { page } from "$app/stores";
-  import { searchResult, searchText } from "$lib/store";
+  import {
+    currentCourse,
+    pageSearchSelectedCourseNo,
+    searchResult,
+    searchText,
+  } from "$lib/context";
   import type { CourseInfo } from "$lib/course";
   import { onMount } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { invoke } from "@tauri-apps/api";
+  import { goto } from "$app/navigation";
 
   let searching: boolean = false;
   let searchingText: string = $searchText;
@@ -21,6 +27,13 @@
   interface SearchCallback {
     text: string;
     results: CourseInfo[];
+  }
+
+  function gotoCourse(course: CourseInfo) {
+    console.log("goto course", course);
+    pageSearchSelectedCourseNo.set(course.courseNo);
+    currentCourse.set(course);
+    goto(`/search/view?no=${course.courseNo}`);
   }
 
   onMount(() => {
@@ -81,7 +94,7 @@
           courseName={course.courseName}
           teacherName={course.courseTeacher}
           courseNode={course.node?.replaceAll(",", ", ")}
-          href={`/search/view?no=${course.courseNo}`}
+          on:click={() => gotoCourse(course)}
           activated={$page.url.pathname.startsWith(`/search/view`) &&
             $page.url.searchParams.get("no") === course.courseNo}
         />

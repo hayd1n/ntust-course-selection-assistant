@@ -3,7 +3,7 @@ export type Week = {
   text: string;
 };
 
-export const weeks: Week[] = [
+export const Weeks: Week[] = [
   { label: "M", text: "Monday" },
   { label: "T", text: "Tuesday" },
   { label: "W", text: "Wednesday" },
@@ -19,7 +19,7 @@ export type ClassTime = {
   end: string;
 };
 
-export const classTimes: ClassTime[] = [
+export const ClassTimes: ClassTime[] = [
   {
     label: "1",
     start: "08:10",
@@ -27,97 +27,70 @@ export const classTimes: ClassTime[] = [
   },
   {
     label: "2",
-    start: "08:10",
-    end: "09:00",
+    start: "09:10",
+    end: "10:00",
   },
   {
     label: "3",
-    start: "08:10",
-    end: "09:00",
+    start: "10:20",
+    end: "11:10",
   },
   {
     label: "4",
-    start: "08:10",
-    end: "09:00",
+    start: "11:20",
+    end: "12:10",
   },
   {
     label: "5",
-    start: "08:10",
-    end: "09:00",
+    start: "12:20",
+    end: "13:10",
   },
   {
     label: "6",
-    start: "08:10",
-    end: "09:00",
+    start: "13:20",
+    end: "14:10",
   },
   {
     label: "7",
-    start: "08:10",
-    end: "09:00",
+    start: "14:20",
+    end: "15:10",
   },
   {
     label: "8",
-    start: "08:10",
-    end: "09:00",
+    start: "15:30",
+    end: "16:20",
   },
   {
     label: "9",
-    start: "08:10",
-    end: "09:00",
+    start: "16:30",
+    end: "17:20",
   },
   {
     label: "10",
-    start: "08:10",
-    end: "09:00",
+    start: "17:30",
+    end: "18:20",
   },
   {
     label: "A",
-    start: "08:10",
-    end: "09:00",
+    start: "18:25",
+    end: "19:15",
   },
   {
     label: "B",
-    start: "08:10",
-    end: "09:00",
+    start: "19:20",
+    end: "20:10",
   },
   {
     label: "C",
-    start: "08:10",
-    end: "09:00",
+    start: "20:15",
+    end: "21:05",
   },
   {
     label: "D",
-    start: "08:10",
-    end: "09:00",
+    start: "21:10",
+    end: "22:00",
   },
 ];
-
-export type Course = {
-  Semester: string;
-  CourseNo: string;
-  CourseName: string;
-  CourseTeacher: string;
-  Dimension: string;
-  CreditPoint: string;
-  RequireOption: string;
-  AllYear: string;
-  ChooseStudent: number;
-  Restrict1: string;
-  Restrict2: string;
-  ThreeStudent: number;
-  AllStudent: number;
-  NTURestrict: string;
-  NTNURestrict: string;
-  CourseTimes: string;
-  PracticalTimes: string;
-  ClassRoomNo: string;
-  ThreeNode: string | null;
-  Node: string;
-  Contents: string;
-  NTU_People: number;
-  NTNU_People: number;
-  AbroadPeople: number;
-};
 
 export interface CourseInfo {
   semester: string;
@@ -180,20 +153,68 @@ export interface CourseDetails {
   instructionOther?: string;
 }
 
-export function parseTimeString(node: string) {
-  let times = node.split(",");
+export interface WeekRange {
+  weekIndex: number;
+  startIndex: number;
+  endIndex: number;
+}
 
-  return times.map((t) => {
-    let weekChar = t[0];
-    let timeChar = t[1];
+export function parseWeekRanges(input: string) {
+  const ranges: WeekRange[] = [];
+  const elements = input.split(",");
 
-    let week = weeks.find((w) => w.label === weekChar);
-    let time = classTimes.find((t) => t.label === timeChar);
+  // use a Map to store the values for each week
+  const weekMap: { [key: string]: string[] } = {};
 
-    if (week && time) {
-      return { week, time };
-    } else {
-      return null;
+  // grouping elements into weekMap
+  for (const element of elements) {
+    const week = element[0];
+    const value = element.slice(1);
+
+    if (!weekMap[week]) {
+      weekMap[week] = [];
     }
-  });
+    weekMap[week].push(value);
+  }
+
+  // find week and class time indexes
+  const getWeekIndex = (label: string) =>
+    Weeks.findIndex((week) => week.label === label);
+
+  const getClassTimeIndex = (label: string) =>
+    ClassTimes.findIndex((time) => time.label === label);
+
+  // iterate over weekMap and generate ranges
+  for (const week in weekMap) {
+    const values = weekMap[week];
+    // 將 values 按字母和數字順序排序
+    values.sort((a, b) =>
+      getClassTimeIndex(a) > getClassTimeIndex(b) ? 1 : -1
+    );
+    // console.log(values);
+
+    // group the sorted values into ranges
+    let start = values[0];
+    for (let i = 1; i < values.length; i++) {
+      const prevValue = values[i - 1];
+      const currValue = values[i];
+      const prevNum = getClassTimeIndex(prevValue);
+      const currNum = getClassTimeIndex(currValue);
+      if (currNum !== prevNum + 1) {
+        ranges.push({
+          weekIndex: getWeekIndex(week),
+          startIndex: getClassTimeIndex(start),
+          endIndex: getClassTimeIndex(values[i - 1]),
+        });
+        start = values[i];
+      }
+    }
+    ranges.push({
+      weekIndex: getWeekIndex(week),
+      startIndex: getClassTimeIndex(start),
+      endIndex: getClassTimeIndex(values[values.length - 1]),
+    });
+  }
+
+  return ranges;
 }

@@ -112,6 +112,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_context_menu::init())
         .invoke_handler(tauri::generate_handler![
             open_url,
             search_course,

@@ -1,22 +1,33 @@
 <script lang="ts">
   import { Search, Settings, Table2 } from "lucide-svelte";
   import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-  import { page } from "$app/stores";
   import { Button } from "./ui/button";
-  import { pageSearchSelectedCourseNo as selectedCourseNo } from "$lib/store";
+  import { pageSearchSelectedCourseNo as selectedCourseNo } from "$lib/context";
+  import { page } from "$app/stores";
+  import { getStateSelectedTable } from "$lib/storage";
+  import { goto } from "$app/navigation";
+
+  const TooltipGroupName = "activity-bar";
+
+  async function gotoTables() {
+    const selecetdTableName = await getStateSelectedTable();
+    if (!selecetdTableName) goto("/tables");
+
+    goto(`/tables/table?name=${selecetdTableName}`);
+  }
 </script>
 
 <div
   class="w-16 h-full flex flex-col flex-nowrap items-center shrink-0 border-r p-2 gap-1 overflow-hidden select-none"
 >
-  <Tooltip.Root>
+  <Tooltip.Root group={TooltipGroupName}>
     <Tooltip.Trigger asChild let:builder>
       <Button
         builders={[builder]}
         variant="ghost"
         size="icon"
         draggable={false}
-        href="/tables"
+        on:click={gotoTables}
         class={$page.url.pathname.startsWith("/tables")
           ? ""
           : "text-muted-foreground"}
@@ -29,7 +40,7 @@
     </Tooltip.Content>
   </Tooltip.Root>
 
-  <Tooltip.Root>
+  <Tooltip.Root group={TooltipGroupName}>
     <Tooltip.Trigger asChild let:builder>
       <Button
         builders={[builder]}
@@ -52,7 +63,7 @@
 
   <div class="flex grow"></div>
 
-  <Tooltip.Root>
+  <Tooltip.Root group={TooltipGroupName}>
     <Tooltip.Trigger asChild let:builder>
       <Button
         builders={[builder]}

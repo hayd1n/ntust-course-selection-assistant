@@ -5,5 +5,6 @@
 
 <SplitView>
   <SearchSidemenu slot="sidemenu" />
+
   <slot />
 </SplitView>

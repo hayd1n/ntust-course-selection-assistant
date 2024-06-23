@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as HoverCard from "$lib/components/ui/hover-card/";
   import { CalendarDays } from "lucide-svelte";
+  import { createEventDispatcher } from "svelte";
 
   export let courseNo: string;
   export let courseName: string;
@@ -8,6 +9,12 @@
   export let courseNode: string | undefined = undefined;
 
   export let activated: boolean = false;
+
+  const dispatch = createEventDispatcher<{ click: { event: MouseEvent } }>();
+
+  function handleClick(e: MouseEvent) {
+    dispatch("click", { event: e });
+  }
 </script>
 
 <HoverCard.Trigger
@@ -18,17 +25,15 @@
   draggable={false}
   {...$$restProps}
 >
-  <div class="w-full">
+  <div class="w-full" aria-hidden={false} on:click={handleClick}>
     <div class="space-y-1">
-      <h4 class="text-sm font-semibold">{courseNo}</h4>
-      <h4 class="text-sm font-semibold">{courseName}</h4>
-      <p class="text-sm">{teacherName}</p>
+      <h4 class="text-xs font-semibold">{courseNo}</h4>
+      <h4 class="text-xs font-semibold">{courseName}</h4>
+      <p class="text-xs">{teacherName}</p>
       {#if courseNode}
-        <div class="flex items-center pt-2">
-          <CalendarDays class="mr-2 h-4 w-4 opacity-70 shrink-0" />
-          <span class="text-xs text-muted-foreground truncate"
-            >{courseNode}</span
-          >
+        <div class="flex items-center pt-1 opacity-70">
+          <CalendarDays class="mr-1 h-3 w-3 shrink-0" />
+          <span class="text-xs truncate">{courseNode}</span>
         </div>
       {/if}
     </div>

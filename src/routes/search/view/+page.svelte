@@ -1,19 +1,27 @@
 <script lang="ts">
+  import * as TopBar from "$lib/components/topbar";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import * as Tooltip from "$lib/components/ui/tooltip";
+  import * as Command from "$lib/components/ui/command";
+  import * as Popover from "$lib/components/ui/popover";
   import { page } from "$app/stores";
   import { openUrl } from "$lib/api";
   import { Button } from "$lib/components/ui/button";
   import type { CourseDetails } from "$lib/course";
-  import * as TopBar from "$lib/components/topbar";
   import { invoke } from "@tauri-apps/api";
   import { CalendarPlus } from "lucide-svelte";
-  import { pageSearchSelectedCourseNo } from "$lib/store";
+  import { tick } from "svelte";
+  import { CaretSort, Check } from "svelte-radix";
+  import { cn } from "$lib/utils";
+  import { getStoreAllTables } from "$lib/storage";
+  import { currentCourse } from "$lib/context";
+  import { addCourseToTable } from "$lib/tables";
+  import { toast } from "svelte-sonner";
 
   $: courseNo = $page.url.searchParams.get("no");
 
   let courseDetails: CourseDetails | undefined = undefined;
   $: {
-    $pageSearchSelectedCourseNo = courseNo;
-
     invoke<CourseDetails>("query_course", {
       semester: "1131",
       language: "en",
@@ -25,6 +33,31 @@
       })
       .catch(() => (courseDetails = undefined));
   }
+
+  let addToTableDialogOpen = false;
+
+  let tableSelectorOpen = false;
+  let selectedTable = "";
+
+  // We want to refocus the trigger button when the user selects
+  // an item from the list so users can continue navigating the
+  // rest of the form with the keyboard.
+  function closeAndFocusTrigger(triggerId: string) {
+    tableSelectorOpen = false;
+    tick().then(() => {
+      document.getElementById(triggerId)?.focus();
+    });
+  }
+
+  async function handleAddCourseToTable() {
+    if (!$currentCourse) return;
+    await addCourseToTable(selectedTable, $currentCourse);
+    addToTableDialogOpen = false;
+
+    toast.success("Add to table successful", {
+      description: `Add ${courseNo} to ${selectedTable} successful`,
+    });
+  }
 </script>
 
 <TopBar.Root>
@@ -34,16 +67,29 @@
   </TopBar.Header>
   <TopBar.Space />
   <div class="flex flex-row flex-nowrap">
-    <Button variant="ghost" size="icon">
-      <CalendarPlus class="w-4" />
-    </Button>
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild let:builder>
+        <Button
+          builders={[builder]}
+          variant="ghost"
+          size="icon"
+          on:click={() => (addToTableDialogOpen = true)}
+        >
+          <CalendarPlus class="w-4" />
+        </Button>
+      </Tooltip.Trigger>
+      <Tooltip.Content side="bottom">
+        <p>Add to table</p>
+      </Tooltip.Content>
+    </Tooltip.Root>
   </div>
 </TopBar.Root>
+
 <div class="w-full h-full flex flex-col items-center overflow-auto p-2">
   <div
     class="w-full lg:w-11/12 xl:w-10/12 flex flex-col flex-nowrap p-6 lg:px-0 gap-3"
   >
-    <div class="flex flex-col flex-nowrap border-b pb-4 gap-1">
+    <div class="flex flex-col flex-nowrap border-b pb-4 gap-1 select-none">
       <div class="flex flex-row flex-nowrap items-center gap-1">
         <div>
           <h3 class="text-lg font-bold leading-none">
@@ -51,20 +97,38 @@
           </h3>
         </div>
         <div>
-          <span class="bg-secondary text-sm px-2 py-1 rounded">{courseNo}</span>
+          <span
+            class="bg-secondary text-sm px-2 py-1 rounded select-text cursor-text"
+            >{courseNo}</span
+          >
         </div>
       </div>
       <div class="flex flex-row flex-nowrap items-center gap-2">
         {#if courseDetails?.courseTeacher}
-          <div class="text-sm text-secondary-foreground pr-2 border-r">
+          <div
+            class="text-sm text-secondary-foreground
+            [&:not(:last-child)]:pr-2 [&:not(:last-child)]:border-r"
+          >
             {courseDetails?.courseTeacher}
           </div>
         {/if}
-        <div class="text-sm text-secondary-foreground pr-2 border-r">
+        <div
+          class="text-sm text-secondary-foreground
+          [&:not(:last-child)]:pr-2 [&:not(:last-child)]:border-r"
+        >
           {courseDetails?.creditPoint} credits
         </div>
-        <div class="text-sm text-secondary-foreground">
+        <div
+          class="text-sm text-secondary-foreground
+          [&:not(:last-child)]:pr-2 [&:not(:last-child)]:border-r"
+        >
           {courseDetails?.requireOption}
+        </div>
+        <div
+          class="text-sm text-secondary-foreground
+          [&:not(:last-child)]:pr-2 [&:not(:last-child)]:border-r"
+        >
+          {courseDetails?.allYear}
         </div>
       </div>
     </div>
@@ -171,41 +235,51 @@
           <div class="information-list">
             <div class="information-container">
               <div class="information-title">Semester</div>
-              <div>{courseDetails?.semester}</div>
+              <div class="information-content">{courseDetails?.semester}</div>
             </div>
             <div class="information-container">
               <div class="information-title">Number</div>
-              <div>{courseDetails?.courseNo}</div>
+              <div class="information-content">{courseDetails?.courseNo}</div>
             </div>
             <div class="information-container">
               <div class="information-title">Name</div>
-              <div>{courseDetails?.courseName}</div>
+              <div class="information-content">{courseDetails?.courseName}</div>
             </div>
             {#if courseDetails?.courseTeacher}
               <div class="information-container">
                 <div class="information-title">Teacher</div>
-                <div>{courseDetails?.courseTeacher}</div>
+                <div class="information-content">
+                  {courseDetails?.courseTeacher}
+                </div>
               </div>
             {/if}
             <div class="information-container">
               <div class="information-title">Credit Points</div>
-              <div>{courseDetails?.creditPoint}</div>
+              <div class="information-content">
+                {courseDetails?.creditPoint}
+              </div>
             </div>
             <div class="information-container">
               <div class="information-title">Course Times</div>
-              <div>{courseDetails?.courseTimes} hours</div>
+              <div class="information-content">
+                {courseDetails?.courseTimes} hours
+              </div>
             </div>
             <div class="information-container">
               <div class="information-title">Practical Times</div>
-              <div>{courseDetails?.practicalTimes} hours</div>
+              <div class="information-content">
+                {courseDetails?.practicalTimes} hours
+              </div>
             </div>
             <div class="information-container">
               <div class="information-title">Require</div>
-              <div>{courseDetails?.requireOption}</div>
+              <div class="information-content">
+                {courseDetails?.requireOption}
+              </div>
             </div>
             <div class="information-container">
               <div class="information-title">Year</div>
-              <div>{courseDetails?.allYear}</div>
+              <div class="information-content">{courseDetails?.allYear}</div>
             </div>
           </div>
         </div>
@@ -214,17 +288,84 @@
   </div>
 </div>
 
+<!-- Add course to tabel dialog -->
+<Dialog.Root bind:open={addToTableDialogOpen}>
+  <Dialog.Content class="sm:max-w-[425px]">
+    <Dialog.Header>
+      <Dialog.Title>Add {courseNo} to table</Dialog.Title>
+      <Dialog.Description>
+        Please select the table you would like to add
+      </Dialog.Description>
+    </Dialog.Header>
+    <div class="grid relative">
+      <Popover.Root bind:open={tableSelectorOpen} let:ids>
+        <Popover.Trigger asChild let:builder>
+          <Button
+            builders={[builder]}
+            variant="outline"
+            role="combobox"
+            aria-expanded={tableSelectorOpen}
+            class="w-full justify-between"
+          >
+            {selectedTable !== "" ? selectedTable : "Select a table..."}
+            <CaretSort class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </Popover.Trigger>
+        <Popover.Content class="w-full p-0">
+          <Command.Root>
+            <Command.Input placeholder="Search table..." class="h-9" />
+            {#await getStoreAllTables()}
+              <Command.Empty>Loading tables...</Command.Empty>
+            {:then tables}
+              {#if tables}
+                <Command.Group>
+                  {#each tables as { name }}
+                    <Command.Item
+                      value={name}
+                      onSelect={(currentValue) => {
+                        selectedTable = currentValue;
+                        closeAndFocusTrigger(ids.trigger);
+                      }}
+                    >
+                      <Check
+                        class={cn(
+                          "mr-2 h-4 w-4",
+                          selectedTable !== name && "text-transparent"
+                        )}
+                      />
+                      {name}
+                    </Command.Item>
+                  {/each}
+                </Command.Group>
+              {:else}
+                <Command.Empty>No table found.</Command.Empty>
+              {/if}
+            {/await}
+          </Command.Root>
+        </Popover.Content>
+      </Popover.Root>
+    </div>
+    <Dialog.Footer>
+      <Button
+        type="submit"
+        disabled={selectedTable === ""}
+        on:click={handleAddCourseToTable}>Add</Button
+      >
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
+
 <style lang="postcss">
   .description-container {
     @apply flex flex-col flex-nowrap gap-1;
   }
 
   .description-title {
-    @apply text-base font-bold leading-none select-none cursor-default;
+    @apply text-base font-bold leading-none select-none;
   }
 
   .description-content {
-    @apply text-sm whitespace-pre-wrap;
+    @apply text-sm whitespace-pre-wrap select-text;
   }
 
   .description-ul {
@@ -242,6 +383,10 @@
   }
 
   .information-title {
-    @apply font-bold select-none cursor-default;
+    @apply font-bold select-none;
+  }
+
+  .information-content {
+    @apply select-text;
   }
 </style>

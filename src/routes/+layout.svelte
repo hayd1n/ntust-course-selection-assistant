@@ -4,10 +4,11 @@
   import ActivityBar from "$lib/components/ActivityBar.svelte";
   import StatusBar from "$lib/components/StatusBar.svelte";
   import { onMount } from "svelte";
-  import { getStateSidemenuWidth } from "$lib/state";
-  import { uiSidemenuWidth } from "$lib/store";
+  import { getStateSidemenuWidth } from "$lib/storage";
+  import { uiSidemenuWidth } from "$lib/context";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
+  import { Toaster } from "$lib/components/ui/sonner";
 
   onMount(async () => {
     const storeUiSidemenuWidth = await getStateSidemenuWidth();
@@ -27,6 +28,8 @@
   </div>
   <StatusBar />
 </div>
+
+<Toaster />
 
 <ModeWatcher />
 

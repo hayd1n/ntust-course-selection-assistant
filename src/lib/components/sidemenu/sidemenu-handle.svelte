@@ -68,6 +68,6 @@
   }
 
   :global(*:has(.handle.resizing)) {
-    @apply cursor-col-resize select-none;
+    @apply !cursor-col-resize !select-none;
   }
 </style>

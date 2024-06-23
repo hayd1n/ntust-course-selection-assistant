@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as Sidemenu from "$lib/components/sidemenu";
-  import { setStateSidemenuWidth } from "$lib/state";
-  import { uiSidemenuWidth } from "$lib/store";
+  import { setStateSidemenuWidth } from "$lib/storage";
+  import { uiSidemenuWidth } from "$lib/context";
 
   let windowWidth = 0;
   let sidemenuRef: HTMLElement | undefined = undefined;
@@ -19,6 +19,8 @@
     await setStateSidemenuWidth(e.detail.newWidth);
   }
 </script>
+
+<svelte:window bind:innerWidth={windowWidth} />
 
 <div class="w-full h-full flex flex-row">
   <Sidemenu.Root
