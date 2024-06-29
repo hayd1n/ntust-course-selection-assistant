@@ -1,6 +1,8 @@
 <script lang="ts">
   import * as Timetable from "$lib/components/timetable";
   import * as CourseBlock from "$lib/components/course-block";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import * as Dialog from "$lib/components/ui/dialog";
   import {
     ClassTimes,
     Weeks,
@@ -9,10 +11,20 @@
     type WeekRange,
   } from "$lib/course";
   import { onMount } from "svelte";
-  import { getTableCourses } from "$lib/tables";
+  import {
+    addCourseToTable,
+    deleteTableCourse,
+    getTableCourses,
+  } from "$lib/tables";
   import { page } from "$app/stores";
   import { getStoreAllTables, getStoreTable } from "$lib/storage";
   import { goto } from "$app/navigation";
+  import { showMenu } from "tauri-plugin-context-menu";
+  import { toast } from "svelte-sonner";
+  import { gotoCourse } from "$lib/navigate";
+  import LoadingBar from "$lib/components/LoadingBar.svelte";
+  import TableSelector from "$lib/components/TableSelector.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   $: tableName = $page.url.searchParams.get("name");
   $: {
@@ -26,6 +38,14 @@
 
   let tableViewWidth = 0;
   let tableViewHeight = 0;
+
+  let selectdCourses: string[] = [];
+
+  let courseCopyMode: "copy" | "move" | null;
+  let courseCopyMoveDialogOpen = false;
+  let courseCopySelectedTable: string | null = null;
+
+  let courseDeleteDialogOpen = false;
 
   let classCellRefs: (HTMLTableCellElement | undefined)[][] = Weeks.map((_) => {
     return ClassTimes.map((_) => {
@@ -56,14 +76,13 @@
   }
 
   let coursePositions: {
-    courseNo: string;
-    courseName: string;
-    teacherName: string;
+    course: CourseInfo;
     positions: {
       top: number;
       left: number;
       width: number;
       height: number;
+      hoverOpen: boolean;
     }[];
     highlight: boolean;
   }[] = [];
@@ -71,9 +90,7 @@
   function calculateCoursePositions() {
     coursePositions = courses.map((course) => {
       return {
-        courseNo: course.courseNo,
-        courseName: course.courseName,
-        teacherName: course.courseTeacher,
+        course,
         positions: course.weekRange.map((weekRange) => {
           const startCellRef =
             classCellRefs[weekRange.weekIndex][weekRange.startIndex];
@@ -86,6 +103,7 @@
               left: 0,
               width: 0,
               height: 0,
+              hoverOpen: false,
             };
 
           return {
@@ -96,6 +114,7 @@
               endCellRef.offsetTop -
               startCellRef.offsetTop +
               endCellRef.offsetHeight,
+            hoverOpen: false,
           };
         }),
         highlight: false,
@@ -108,15 +127,155 @@
     [tableViewWidth, tableViewHeight, courses];
   }
 
+  function closeAllCoursesBlockHoverCard() {
+    coursePositions.forEach((c) =>
+      c.positions.forEach((p) => (p.hoverOpen = false))
+    );
+    coursePositions = coursePositions;
+  }
+
+  function handleCourseViewClick(course: CourseInfo) {
+    gotoCourse(course);
+  }
+
+  function handleCourseCopyMoveClick(
+    course: CourseInfo,
+    mode: "copy" | "move"
+  ) {
+    closeAllCoursesBlockHoverCard();
+
+    selectdCourses = [course.courseNo];
+
+    courseCopyMode = mode;
+
+    courseCopyMoveDialogOpen = true;
+  }
+
+  function handleCourseDeleteClick(course: CourseInfo) {
+    closeAllCoursesBlockHoverCard();
+
+    selectdCourses = [course.courseNo];
+
+    courseDeleteDialogOpen = true;
+  }
+
+  async function handleCourseCopyMoveSubmit() {
+    if (!tableName || !courseCopySelectedTable) return;
+
+    const promises = selectdCourses.map((courseNo) => {
+      // find course info for copy
+      const course = courses.find((info) => info.courseNo === courseNo);
+      if (!course) return;
+
+      return addCourseToTable(courseCopySelectedTable!, course);
+    });
+
+    // wait for all courses to be added
+    await Promise.all(promises);
+
+    if (courseCopyMode === "move") {
+      // delete all selected courses
+      const promises = selectdCourses.map((c) =>
+        deleteTableCourse(tableName, c)
+      );
+
+      // wait for all courses to be deleted
+      await Promise.all(promises);
+    }
+
+    // refresh courses
+    await getCourses();
+
+    courseCopyMoveDialogOpen = false;
+
+    toast.success(
+      courseCopyMode === "copy"
+        ? "Course Copy Successful"
+        : "Course Move Successful",
+      {
+        description:
+          courseCopyMode === "copy"
+            ? `Successful copy ${selectdCourses.length} course to ${courseCopySelectedTable}`
+            : `Successful move ${selectdCourses.length} course to ${courseCopySelectedTable}`,
+      }
+    );
+
+    selectdCourses = [];
+    courseCopySelectedTable = null;
+  }
+
+  async function handleCourseDeleteSubmit() {
+    if (!tableName) return;
+
+    // delete all selected courses
+    const promises = selectdCourses.map((c) => deleteTableCourse(tableName, c));
+
+    // wait for all courses to be deleted
+    await Promise.all(promises);
+
+    // refresh courses
+    await getCourses();
+
+    courseDeleteDialogOpen = false;
+
+    toast.success("Course deleted successfully", {
+      description: `Successfully delete ${selectdCourses.length} course`,
+    });
+
+    selectdCourses = [];
+  }
+
+  async function handleCourseBlockContextMenu(
+    e: CustomEvent<{
+      event: MouseEvent;
+    }>,
+    course: CourseInfo
+  ) {
+    e.detail.event.preventDefault();
+
+    closeAllCoursesBlockHoverCard();
+
+    await showMenu({
+      items: [
+        {
+          label: "View",
+          event: (e) => handleCourseViewClick(e?.payload.course),
+          payload: { course },
+          shortcut: "cmd+o",
+        },
+        { is_separator: true },
+        {
+          label: "Copy to",
+          event: (e) => handleCourseCopyMoveClick(e?.payload.course, "copy"),
+          payload: { course },
+          shortcut: "cmd+shift+c",
+        },
+        {
+          label: "Move to",
+          event: (e) => handleCourseCopyMoveClick(e?.payload.course, "move"),
+          payload: { course },
+          shortcut: "cmd+shift+v",
+        },
+        { is_separator: true },
+        {
+          label: "Delete",
+          event: (e) => handleCourseDeleteClick(e?.payload.course),
+          payload: { course },
+          shortcut: "delete",
+        },
+      ],
+    });
+  }
+
   onMount(async () => {
     await getCourses();
     calculateCoursePositions();
   });
 </script>
 
-<div class="h-full overflow-y-auto">
+<div class="h-full min-h-full overflow-y-auto">
   <div
-    class="relative"
+    class="relative min-h-full"
     bind:offsetWidth={tableViewWidth}
     bind:offsetHeight={tableViewHeight}
   >
@@ -149,24 +308,80 @@
       </Timetable.Body>
     </Timetable.Root>
 
-    {#each coursePositions as course}
-      {#each course.positions as position}
-        <CourseBlock.Root>
+    {#each coursePositions as block}
+      {#each block.positions as position}
+        <CourseBlock.Root bind:open={position.hoverOpen}>
           <CourseBlock.Trigger
-            courseNo={course.courseNo}
-            courseName={course.courseName}
-            teacherName={course.teacherName}
+            courseNo={block.course.courseNo}
+            courseName={block.course.courseName}
+            teacherName={block.course.courseTeacher}
             top={position.top}
             left={position.left}
             width={position.width}
             height={position.height}
-            highlight={course.highlight}
-            on:mouseenter={() => (course.highlight = true)}
-            on:mouseleave={() => (course.highlight = false)}
+            highlight={block.highlight}
+            on:mouseenter={() => (block.highlight = true)}
+            on:mouseleave={() => (block.highlight = false)}
+            on:click={() => handleCourseViewClick(block.course)}
+            on:contextmenu={(e) =>
+              handleCourseBlockContextMenu(e, block.course)}
           />
-          <CourseBlock.Content />
+          <!-- <CourseBlock.Content /> -->
         </CourseBlock.Root>
       {/each}
     {/each}
   </div>
 </div>
+
+<!-- Copy/Move Course to Tabel Dialog -->
+<Dialog.Root bind:open={courseCopyMoveDialogOpen}>
+  <Dialog.Content class="sm:max-w-[425px]">
+    <Dialog.Header>
+      <Dialog.Title
+        >{courseCopyMode === "copy" ? "Copy" : "Move"} to table</Dialog.Title
+      >
+      <Dialog.Description>
+        Please select the table you would like to {courseCopyMode} to
+      </Dialog.Description>
+    </Dialog.Header>
+    {#await getStoreAllTables()}
+      <LoadingBar />
+    {:then tables}
+      {#if tables}
+        <TableSelector
+          tables={tables.map((t) => t.name).filter((t) => t !== tableName)}
+          bind:selected={courseCopySelectedTable}
+        />
+      {:else}
+        <p>No table found.</p>
+      {/if}
+    {/await}
+    <Dialog.Footer>
+      <Button
+        type="submit"
+        disabled={courseCopySelectedTable === null}
+        on:click={handleCourseCopyMoveSubmit}
+        >{courseCopyMode === "copy" ? "Copy" : "Move"}</Button
+      >
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
+
+<!-- Delete Course Confirm Dialog -->
+<AlertDialog.Root bind:open={courseDeleteDialogOpen}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Are you sure you want to delete it?</AlertDialog.Title>
+      <AlertDialog.Description>
+        This action cannot be undone. This will delete the course from your
+        table.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action on:click={handleCourseDeleteSubmit}
+        >Delete</AlertDialog.Action
+      >
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>

@@ -14,18 +14,14 @@
     duplicateTable,
     renameTable,
   } from "$lib/tables";
-  import {
-    getStoreAllTables,
-    getStoreTable,
-    setStateSelectedTable,
-  } from "$lib/storage";
+  import { getStoreAllTables, getStoreTable } from "$lib/storage";
   import { onMount } from "svelte";
   import { writable } from "svelte/store";
   import { page } from "$app/stores";
-  import { goto } from "$app/navigation";
   import { showMenu } from "tauri-plugin-context-menu";
   import type { Action } from "svelte/action";
   import { toast } from "svelte-sonner";
+  import { gotoTable } from "$lib/navigate";
 
   $: tableName = $page.url.searchParams.get("name");
 
@@ -40,11 +36,6 @@
   let renamingNewName = "";
 
   let deleting: string | null = null;
-
-  async function gotoTable(name: string) {
-    await setStateSelectedTable(name);
-    goto(`/tables/table?name=${name}`);
-  }
 
   const renameInput: Action = (el: Node) => {
     const inputEl = el as HTMLInputElement;
@@ -98,9 +89,9 @@
     newTableName = "";
   }
 
-  function handleTableClick(e: MouseEvent, name: string) {
-    e.preventDefault();
-    e.stopPropagation();
+  function handleTableClick(name: string) {
+    // don't navigate to the table if it's already selected
+    if (name === tableName) return;
 
     // don't navigate to the table if it's renaming
     if (name === renaming) return;
@@ -184,20 +175,21 @@
     deleteTableDialogOpen = false;
   }
 
-  function handleTableContextMenu(name: string) {
-    showMenu({
+  async function handleTableContextMenu(name: string) {
+    await showMenu({
       items: [
-        {
-          label: "Rename",
-          event: (e) => handleTableRenameClick(e?.payload.name),
-          payload: { name },
-          shortcut: "enter",
-        },
         {
           label: "Duplicate",
           event: (e) => handleTableDuplicateClick(e?.payload.name),
           payload: { name },
           shortcut: "cmd+d",
+        },
+        { is_separator: true },
+        {
+          label: "Rename",
+          event: (e) => handleTableRenameClick(e?.payload.name),
+          payload: { name },
+          shortcut: "enter",
         },
         {
           label: "Delete",
@@ -208,13 +200,6 @@
       ],
     });
   }
-
-  onMount(async () => {
-    const test = await getStoreAllTables();
-    if (!test) return;
-
-    console.log(test);
-  });
 </script>
 
 <Sidemenu.Header>
@@ -252,6 +237,8 @@
             class="w-full"
             aria-hidden={false}
             on:contextmenu|preventDefault={() => handleTableContextMenu(name)}
+            on:click|preventDefault={() => handleTableClick(name)}
+            on:dblclick|preventDefault={() => handleTableRenameClick(name)}
           >
             <Button
               variant={$page.url.pathname.startsWith(`/tables/table`) &&
@@ -260,7 +247,6 @@
                 : "ghost"}
               size="sm"
               class="justify-start w-full shrink-0 transition-none"
-              on:click={(e) => handleTableClick(e, name)}
             >
               {#if name === renaming}
                 <input
@@ -282,6 +268,7 @@
   </div>
 </Sidemenu.Content>
 
+<!-- Create Table Dialog -->
 <Dialog.Root bind:open={createTableDialogOpen}>
   <Dialog.Content>
     <form on:submit|preventDefault={handleCreateTable}>
@@ -317,6 +304,7 @@
   </Dialog.Content>
 </Dialog.Root>
 
+<!-- Delete Table Confirm Dialog -->
 <AlertDialog.Root bind:open={deleteTableDialogOpen}>
   <AlertDialog.Content>
     <AlertDialog.Header>

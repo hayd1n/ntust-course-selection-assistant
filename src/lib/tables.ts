@@ -26,6 +26,12 @@ export class TableNotFoundError extends Error {
   }
 }
 
+export class CourseNotFoundError extends Error {
+  constructor(table: string, courseNo: string) {
+    super(`${courseNo} are not in ${table}`);
+  }
+}
+
 export async function createTable(name: string) {
   const all = await getStoreAllTables();
   if (all?.find((t) => t.name === name) !== undefined)
@@ -127,6 +133,23 @@ export async function deleteTable(name: string) {
   if (index === undefined) throw new TableNotFoundError(name);
 
   await deleteStoreTable(index);
+
+  // write the table to the disk immediately
+  await saveTables();
+}
+
+export async function deleteTableCourse(name: string, courseNo: string) {
+  let table = await getStoreTable(name);
+  const tableIndex = await getStoreTableIndex(name);
+  if (table === undefined || tableIndex === undefined)
+    throw new TableNotFoundError(name);
+
+  const courseIndex = table.courses.findIndex((c) => c.courseNo === courseNo);
+  if (courseIndex === -1) throw new CourseNotFoundError(name, courseNo);
+
+  table.courses.splice(courseIndex, 1);
+
+  await setStoreTable(tableIndex, table);
 
   // write the table to the disk immediately
   await saveTables();

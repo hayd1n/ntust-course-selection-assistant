@@ -2,21 +2,18 @@
   import * as TopBar from "$lib/components/topbar";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as Tooltip from "$lib/components/ui/tooltip";
-  import * as Command from "$lib/components/ui/command";
-  import * as Popover from "$lib/components/ui/popover";
   import { page } from "$app/stores";
   import { openUrl } from "$lib/api";
   import { Button } from "$lib/components/ui/button";
   import type { CourseDetails } from "$lib/course";
   import { invoke } from "@tauri-apps/api";
   import { CalendarPlus } from "lucide-svelte";
-  import { tick } from "svelte";
-  import { CaretSort, Check } from "svelte-radix";
-  import { cn } from "$lib/utils";
   import { getStoreAllTables } from "$lib/storage";
   import { currentCourse } from "$lib/context";
   import { addCourseToTable } from "$lib/tables";
   import { toast } from "svelte-sonner";
+  import LoadingBar from "$lib/components/LoadingBar.svelte";
+  import TableSelector from "$lib/components/TableSelector.svelte";
 
   $: courseNo = $page.url.searchParams.get("no");
 
@@ -36,21 +33,10 @@
 
   let addToTableDialogOpen = false;
 
-  let tableSelectorOpen = false;
-  let selectedTable = "";
-
-  // We want to refocus the trigger button when the user selects
-  // an item from the list so users can continue navigating the
-  // rest of the form with the keyboard.
-  function closeAndFocusTrigger(triggerId: string) {
-    tableSelectorOpen = false;
-    tick().then(() => {
-      document.getElementById(triggerId)?.focus();
-    });
-  }
+  let selectedTable: string | null = null;
 
   async function handleAddCourseToTable() {
-    if (!$currentCourse) return;
+    if (!$currentCourse || !selectedTable) return;
     await addCourseToTable(selectedTable, $currentCourse);
     addToTableDialogOpen = false;
 
@@ -288,7 +274,7 @@
   </div>
 </div>
 
-<!-- Add course to tabel dialog -->
+<!-- Add Course to Tabel Dialog -->
 <Dialog.Root bind:open={addToTableDialogOpen}>
   <Dialog.Content class="sm:max-w-[425px]">
     <Dialog.Header>
@@ -297,54 +283,18 @@
         Please select the table you would like to add
       </Dialog.Description>
     </Dialog.Header>
-    <div class="grid relative">
-      <Popover.Root bind:open={tableSelectorOpen} let:ids>
-        <Popover.Trigger asChild let:builder>
-          <Button
-            builders={[builder]}
-            variant="outline"
-            role="combobox"
-            aria-expanded={tableSelectorOpen}
-            class="w-full justify-between"
-          >
-            {selectedTable !== "" ? selectedTable : "Select a table..."}
-            <CaretSort class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </Popover.Trigger>
-        <Popover.Content class="w-full p-0">
-          <Command.Root>
-            <Command.Input placeholder="Search table..." class="h-9" />
-            {#await getStoreAllTables()}
-              <Command.Empty>Loading tables...</Command.Empty>
-            {:then tables}
-              {#if tables}
-                <Command.Group>
-                  {#each tables as { name }}
-                    <Command.Item
-                      value={name}
-                      onSelect={(currentValue) => {
-                        selectedTable = currentValue;
-                        closeAndFocusTrigger(ids.trigger);
-                      }}
-                    >
-                      <Check
-                        class={cn(
-                          "mr-2 h-4 w-4",
-                          selectedTable !== name && "text-transparent"
-                        )}
-                      />
-                      {name}
-                    </Command.Item>
-                  {/each}
-                </Command.Group>
-              {:else}
-                <Command.Empty>No table found.</Command.Empty>
-              {/if}
-            {/await}
-          </Command.Root>
-        </Popover.Content>
-      </Popover.Root>
-    </div>
+    {#await getStoreAllTables()}
+      <LoadingBar />
+    {:then tables}
+      {#if tables}
+        <TableSelector
+          tables={tables.map((t) => t.name)}
+          bind:selected={selectedTable}
+        />
+      {:else}
+        <p>No table found.</p>
+      {/if}
+    {/await}
     <Dialog.Footer>
       <Button
         type="submit"

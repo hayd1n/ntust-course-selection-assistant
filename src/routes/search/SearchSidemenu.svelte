@@ -15,6 +15,7 @@
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { invoke } from "@tauri-apps/api";
   import { goto } from "$app/navigation";
+  import { gotoCourse } from "$lib/navigate";
 
   let searching: boolean = false;
   let searchingText: string = $searchText;
@@ -27,13 +28,6 @@
   interface SearchCallback {
     text: string;
     results: CourseInfo[];
-  }
-
-  function gotoCourse(course: CourseInfo) {
-    console.log("goto course", course);
-    pageSearchSelectedCourseNo.set(course.courseNo);
-    currentCourse.set(course);
-    goto(`/search/view?no=${course.courseNo}`);
   }
 
   onMount(() => {

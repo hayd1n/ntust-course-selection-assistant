@@ -2,7 +2,7 @@
 
 <style lang="postcss">
   div {
-    @apply w-full h-full select-none cursor-default;
+    @apply w-full h-full select-none;
     @apply bg-secondary;
     mask-image: url("/ntust.svg");
     mask-repeat: no-repeat;
