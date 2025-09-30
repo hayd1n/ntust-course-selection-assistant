@@ -1,7 +1,17 @@
-# Tauri + SvelteKit + TypeScript
+# NTUST Course Selection Assistant
 
-This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
+> 🚧 WIP
 
-## Recommended IDE Setup
+Based on Tauri + Rust + Svelte + TypeScript
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+High-performance course search powered by [q](https://github.com/NTUST-Hack/q)
+
+## Demo
+
+https://github.com/user-attachments/assets/209ee1e6-89fe-4001-93af-cc50dceacd5c
+
+## Screenshots
+
+<img width="1425" height="971" alt="NTUST_Cource_Selection_Assistant_1" src="https://github.com/user-attachments/assets/0e8efd9f-0d08-4f6b-b650-12a43fdeb8b3" />
+
+<img width="1425" height="971" alt="NTUST_Cource_Selection_Assistant_2" src="https://github.com/user-attachments/assets/4b69a2c9-ecea-4bc1-9901-0290c732b496" />
